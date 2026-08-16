@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Карта дня — ритуал</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --obsidian:#0A0E14;
+    --surface:#121826;
+    --surface-2:#1A2233;
+    --text:#E8ECF4;
+    --muted:#8A93A6;
+    --aurora-1:#4FD1C5;
+    --aurora-2:#8B5CF6;
+    --aurora-3:#EC4899;
+    --logika:#56CCF2;
+    --kripta:#F2C94C;
+    --invest:#6FCF97;
+    --nn:#BB6BD9;
+    --display:'Fraunces',Georgia,serif;
+    --ui:'Space Grotesk',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(139,92,246,.14), transparent 55%),
+      radial-gradient(90% 60% at 50% 110%, rgba(79,209,197,.10), transparent 55%),
+      var(--obsidian);
+    color:var(--text);
+    font-family:var(--ui);
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100dvh;overflow:hidden;
+    user-select:none;-webkit-user-select:none;
+  }
+  .stage{
+    width:100%;max-width:420px;flex:1;
+    display:flex;flex-direction:column;
+    padding:26px 22px calc(22px + env(safe-area-inset-bottom));
+    position:relative;
+  }
+
+  /* ── header / day mode ── */
+  .top{display:flex;flex-direction:column;gap:14px;margin-bottom:8px}
+  .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+  .datetxt{font-family:var(--display);font-size:20px;font-weight:500;letter-spacing:.01em}
+  .mode{
+    display:flex;gap:8px;background:var(--surface);border-radius:14px;padding:5px;
+    border:1px solid rgba(255,255,255,.05);
+  }
+  .mode button{
+    flex:1;background:transparent;border:none;color:var(--muted);
+    font-family:var(--ui);font-size:13px;font-weight:500;padding:9px 6px;border-radius:10px;
+    cursor:pointer;transition:.25s;letter-spacing:.01em;
+  }
+  .mode button.on{background:var(--surface-2);color:var(--text);box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
+  .mode .hint{font-size:10px;color:var(--muted);display:block;margin-top:2px;font-weight:400}
+
+  /* ── deck area ── */
+  .arena{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;position:relative}
+  .flip{width:230px;height:340px;perspective:1400px;position:relative}
+  .flip-inner{
+    position:absolute;inset:0;transform-style:preserve-3d;
+    transition:transform .85s cubic-bezier(.2,.9,.25,1.05);
+  }
+  .flip.revealed .flip-inner{transform:rotateY(180deg)}
+  .face{
+    position:absolute;inset:0;border-radius:22px;backface-visibility:hidden;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+
+  /* card back */
+  .back{
+    background:
+      radial-gradient(80% 50% at 50% 0%, rgba(79,209,197,.28), transparent 60%),
+      radial-gradient(80% 55% at 50% 100%, rgba(236,72,153,.22), transparent 60%),
+      linear-gradient(160deg,#141b2b,#0d1420);
+    border:1px solid rgba(255,255,255,.09);
+    align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:0 24px 60px -24px rgba(0,0,0,.9);
+    touch-action:none;
+  }
+  .aurora{
+    position:absolute;inset:0;opacity:.55;mix-blend-mode:screen;
+    background:conic-gradient(from 0deg at 50% 42%,var(--aurora-1),var(--aurora-2),var(--aurora-3),var(--aurora-1));
+    filter:blur(26px);transform:scale(1.1);
+    animation:spin 14s linear infinite;
+  }
+  @keyframes spin{to{transform:scale(1.1) rotate(360deg)}}
+  .glyph{
+    position:relative;width:96px;height:96px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.35);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--display);font-size:40px;color:#fff;
+    background:rgba(10,14,20,.35);backdrop-filter:blur(2px);
+  }
+  .backlabel{position:absolute;bottom:20px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:rgba(232,236,244,.7)}
+
+  /* charge ring */
+  .ring{position:absolute;inset:-14px;pointer-events:none}
+  .ring circle{fill:none;stroke-width:3;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+  .ring .track{stroke:rgba(255,255,255,.07)}
+  .ring .prog{stroke:url(#grad);stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .05s linear;filter:drop-shadow(0 0 6px rgba(139,92,246,.6))}
+
+  /* card face (revealed) */
+  .front{
+    transform:rotateY(180deg);
+    background:linear-gradient(165deg,var(--surface-2),#0e1524);
+    border:1px solid var(--face-accent,rgba(255,255,255,.12));
+    box-shadow:0 0 0 1px rgba(255,255,255,.03), 0 30px 70px -30px rgba(0,0,0,.9), 0 0 40px -10px var(--face-glow,transparent);
+    padding:24px 22px;justify-content:space-between;
+  }
+  .front .row{display:flex;justify-content:space-between;align-items:center}
+  .theme{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--face-accent,#fff);font-weight:600}
+  .level{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border:1px solid rgba(255,255,255,.12);padding:4px 9px;border-radius:20px}
+  .cardnum{position:absolute;right:20px;bottom:16px;font-family:var(--display);font-size:52px;line-height:1;color:rgba(255,255,255,.06);font-weight:600}
+  .task{font-family:var(--display);font-size:23px;line-height:1.28;font-weight:500;letter-spacing:.005em}
+  .task b{color:var(--face-accent)}
+  .est{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .est::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--face-accent)}
+
+  /* prompt + actions */
+  .prompt{text-align:center;min-height:40px;display:flex;flex-direction:column;gap:4px}
+  .prompt .big{font-family:var(--display);font-size:17px;font-weight:500}
+  .prompt .sub{font-size:12px;color:var(--muted)}
+
+  .actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:230px;margin-top:2px}
+  .btn{
+    font-family:var(--ui);font-size:14px;font-weight:600;letter-spacing:.02em;
+    padding:14px;border-radius:14px;border:none;cursor:pointer;transition:.2s;
+  }
+  .btn.primary{background:linear-gradient(100deg,var(--aurora-2),var(--aurora-3));color:#fff}
+  .btn.primary:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.1)}
+  .hidden{display:none !important}
+
+  .locked{text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
+  .locked .day{font-family:var(--display);color:var(--text);font-size:18px;display:block;margin-bottom:4px}
+
+  .footnote{font-size:10.5px;color:#5B6377;text-align:center;line-height:1.5;margin-top:14px}
+
+  @keyframes burst{0%{opacity:0;transform:scale(.4)}30%{opacity:1}100%{opacity:0;transform:scale(1.9)}}
+  .flash{position:absolute;inset:0;border-radius:22px;pointer-events:none;
+    background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.9),transparent 60%);opacity:0}
+  .flash.go{animation:burst .6s ease-out}
+
+  @media (prefers-reduced-motion:reduce){
+    .aurora{animation:none}
+    .flip-inner{transition:transform .3s linear}
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="top">
+    <div>
+      <div class="eyebrow">Карта дня</div>
+      <div class="datetxt" id="dateline">Суббота · утро</div>
+    </div>
+    <div class="mode" id="mode">
+      <button data-mode="light" class="on">Лёгкий день<span class="hint">карты уровня «Искра»</span></button>
+      <button data-mode="heavy">Тяжёлый день<span class="hint">только фоновые</span></button>
+    </div>
+  </div>
+
+  <div class="arena">
+    <div class="flip" id="flip">
+      <svg class="ring" id="ring" viewBox="0 0 100 100" width="258" height="378" style="width:258px;height:378px;display:none">
+        <defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#4FD1C5"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#EC4899"/>
+        </linearGradient></defs>
+        <circle class="track" cx="50" cy="50" r="48"/>
+        <circle class="prog" id="prog" cx="50" cy="50" r="48" pathLength="1"/>
+      </svg>
+      <div class="flip-inner">
+        <div class="face back" id="back">
+          <div class="aurora"></div>
+          <div class="glyph" id="glyph">✦</div>
+          <div class="backlabel">потяни вверх ↑</div>
+          <div class="flash" id="flash"></div>
+        </div>
+        <div class="face front" id="front">
+          <div class="row">
+            <span class="theme" id="f-theme">Логика</span>
+            <span class="level" id="f-level">Искра</span>
+          </div>
+          <div>
+            <div class="task" id="f-task"></div>
+          </div>
+          <div class="row">
+            <span class="est" id="f-est">1 мин · фоном</span>
+          </div>
+          <span class="cardnum" id="f-num">01</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="prompt" id="prompt">
+      <span class="big">Твоя карта ждёт</span>
+      <span class="sub">Потяни рубашку вверх, чтобы вытянуть карту</span>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary hidden" id="accept">Принять карту</button>
+      <button class="btn ghost hidden" id="reset">Сбросить · демо</button>
+    </div>
+
+    <div class="locked hidden" id="locked">
+      <span class="day">До завтра</span>
+      одна карта в день — в этом вся суть
+    </div>
+  </div>
+
+  <div class="footnote">Прототип ощущения. Вибрация работает на Android-браузере;
+  в реальном Telegram Mini App за неё отвечает HapticFeedback (в т.ч. на iPhone).</div>
+</div>
+
+<script>
+/* ─────────────── КОНТЕНТ: твои 4 колоды ───────────────
+   level: 'iskra' | 'pauza' | 'quest'   (сложность)
+   На «тяжёлый день» фильтруем только iskra.               */
+const DECKS = {
+  logika:{name:'Логика', accent:'#56CCF2', glyph:'∴', cards:[
+    {t:'Найди в сегодняшнем разговоре одну <b>подмену понятий</b> — и мысленно назови её.', level:'iskra', est:'1 мин · фоном'},
+    {t:'Разбери одно своё решение по схеме <b>«тезис → аргумент → вывод»</b>.', level:'pauza', est:'5 мин · одна остановка'},
+    {t:'Возьми спорное утверждение и построй к нему <b>сильнейший контраргумент</b>, даже если не согласен.', level:'quest', est:'30 мин · нужно время'},
+  ]},
+  kripta:{name:'Крипта', accent:'#F2C94C', glyph:'₿', cards:[
+    {t:'Заметь, где сегодня <b>цена не равна ценности</b> — в товаре, услуге, внимании.', level:'iskra', est:'1 мин · фоном'},
+    {t:'Объясни другу одним сообщением, что такое <b>ликвидность</b>, без Википедии.', level:'pauza', est:'5 мин · одна остановка'},
+    {t:'Выбери один актив и распиши, <b>что должно случиться</b>, чтобы он вырос ×2.', level:'quest', est:'30 мин · нужно время'},
+  ]},
+  invest:{name:'Инвестиции', accent:'#6FCF97', glyph:'↗', cards:[
+    {t:'Поймай одну <b>импульсивную трату</b> сегодня и не соверши её.', level:'iskra', est:'1 мин · фоном'},
+    {t:'Посчитай, во сколько тебе обошёлся <b>час твоего времени</b> в этом месяце.', level:'pauza', est:'5 мин · одна остановка'},
+    {t:'Составь <b>распределение</b> следующего дохода по конвертам до того, как он пришёл.', level:'quest', est:'30 мин · нужно время'},
+  ]},
+  nn:{name:'Нейросети', accent:'#BB6BD9', glyph:'⌘', cards:[
+    {t:'Замени одну рутинную мысль сегодня на вопрос <b>«как бы это сделал промпт?»</b>', level:'iskra', est:'1 мин · фоном'},
+    {t:'Напиши один промпт и <b>улучши его трижды</b>, замечая, что меняется в ответе.', level:'pauza', est:'5 мин · одна остановка'},
+    {t:'Собери мини-пайплайн: <b>задача → промпт → проверка результата</b> на реальном деле.', level:'quest', est:'30 мин · нужно время'},
+  ]},
+};
+const LEVELS = {iskra:'Искра', pauza:'Пауза', quest:'Квест'};
+
+/* ─────────────── Хаптика ───────────────
+   navigator.vibrate — для браузерного демо.
+   В Telegram Mini App заменить на:
+     Telegram.WebApp.HapticFeedback.impactOccurred('light'|'medium'|'heavy')
+     Telegram.WebApp.HapticFeedback.notificationOccurred('success')          */
+const TG = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+function haptic(kind){
+  if(TG && TG.HapticFeedback){
+    if(kind==='tick') TG.HapticFeedback.selectionChanged();
+    else if(kind==='reveal') TG.HapticFeedback.notificationOccurred('success');
+    else TG.HapticFeedback.impactOccurred(kind);
+    return;
+  }
+  if(!navigator.vibrate) return;
+  const map={tick:8, light:12, medium:24, heavy:[30,20,45], reveal:[40,25,60]};
+  navigator.vibrate(map[kind]||10);
+}
+
+/* ─────────────── Состояние ─────────────── */
+let dayMode='light';
+let dragging=false, startY=0, dy=0, lastTickDist=0, drawn=false;
+const THRESHOLD=150;   // сколько тянуть вверх, чтобы карта «оторвалась»
+const MAXPULL=230;     // дальше не тянется
+
+const flip=document.getElementById('flip');
+const back=document.getElementById('back');
+const prompt=document.getElementById('prompt');
+const accept=document.getElementById('accept');
+const reset=document.getElementById('reset');
+const locked=document.getElementById('locked');
+const flash=document.getElementById('flash');
+const glyph=document.getElementById('glyph');
+
+/* режим дня */
+document.getElementById('mode').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||drawn) return;
+  [...e.currentTarget.children].forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); dayMode=b.dataset.mode; haptic('light');
+});
+
+/* выбор карты по режиму */
+function pickCard(){
+  const keys=Object.keys(DECKS);
+  const deckKey=keys[Math.floor(Math.random()*keys.length)];
+  const deck=DECKS[deckKey];
+  let pool=deck.cards;
+  if(dayMode==='heavy') pool=deck.cards.filter(c=>c.level==='iskra'); // тяжёлый день = только фоновые
+  const card=pool[Math.floor(Math.random()*pool.length)];
+  const idx=deck.cards.indexOf(card)+1;
+  return {deckKey,deck,card,idx};
+}
+
+/* ─────────────── Жест: свайп вверх ───────────────
+   Карта следует за пальцем; за порогом — отрывается и раскрывается. */
+function startDrag(e){
+  if(drawn||dragging) return;
+  e.preventDefault();
+  dragging=true; startY=e.clientY; dy=0; lastTickDist=0;
+  flip.style.transition='none';          // во время тяги карта идёт за пальцем без задержки
+  haptic('light');
+  prompt.querySelector('.big').textContent='Тянешь карту…';
+  prompt.querySelector('.sub').textContent='веди вверх';
+}
+function moveDrag(e){
+  if(!dragging||drawn) return;
+  dy=Math.max(0,Math.min(startY-e.clientY,MAXPULL));   // только вверх, с ограничением
+  const p=Math.min(dy/THRESHOLD,1);
+  flip.style.transform=`translateY(${-dy}px) scale(${1+p*0.05}) rotate(${(Math.random()-.5)*p*1.5}deg)`;
+  glyph.style.opacity=String(1-p*0.5);
+  // нарастающие тики: шаг между ними сокращается ближе к порогу
+  const step=30-p*18;
+  if(dy-lastTickDist>=step){ haptic('tick'); lastTickDist=dy; }
+  if(p>=1){
+    prompt.querySelector('.big').textContent='Отпусти';
+    prompt.querySelector('.sub').textContent='карта готова открыться';
+  }
+}
+function endDrag(){
+  if(!dragging||drawn) return;
+  dragging=false;
+  if(dy>=THRESHOLD){ finishDraw(); }
+  else {
+    // не дотянул — карта плавно возвращается в колоду
+    flip.style.transition='transform .45s cubic-bezier(.25,.9,.3,1.2)';
+    flip.style.transform='';
+    glyph.style.opacity='1';
+    prompt.querySelector('.big').textContent='Ещё немного';
+    prompt.querySelector('.sub').textContent='дотяни до конца, чтобы карта открылась';
+  }
+}
+function finishDraw(){
+  drawn=true;
+  haptic('reveal');            // ПИК — сильный толчок в момент отрыва
+  flash.classList.add('go');
+  glyph.style.opacity='1';
+  // карта чуть довзлетает и переворачивается
+  flip.style.transition='transform .5s cubic-bezier(.2,.9,.25,1.05)';
+  flip.style.transform=`translateY(${-MAXPULL-20}px)`;
+  const {deck,card,idx}=pickCard();
+  document.getElementById('f-theme').textContent=deck.name;
+  document.getElementById('f-level').textContent=LEVELS[card.level];
+  document.getElementById('f-task').innerHTML=card.t;
+  document.getElementById('f-est').textContent=card.est;
+  document.getElementById('f-num').textContent=String(idx).padStart(2,'0');
+  document.querySelector('.front').style.setProperty('--face-accent',deck.accent);
+  document.querySelector('.front').style.setProperty('--face-glow',deck.accent+'55');
+  setTimeout(()=>{
+    flip.style.transform='translateY(0)';   // возвращается по центру уже лицом
+    flip.classList.add('revealed');
+  },160);
+  setTimeout(()=>{
+    prompt.classList.add('hidden');
+    accept.classList.remove('hidden');
+  },640);
+}
+
+/* pointer покрывает и палец, и мышь */
+back.addEventListener('pointerdown',startDrag);
+window.addEventListener('pointermove',moveDrag);
+window.addEventListener('pointerup',endDrag);
+back.addEventListener('pointercancel',endDrag);
+back.addEventListener('contextmenu',e=>e.preventDefault());
+
+/* принять → замок «до завтра» (искусственный дефицит) */
+accept.addEventListener('click',()=>{
+  haptic('medium');
+  accept.classList.add('hidden');
+  locked.classList.remove('hidden');
+  reset.classList.remove('hidden');   // только для демо
+});
+
+/* сброс (демо) */
+reset.addEventListener('click',()=>{
+  haptic('light');
+  drawn=false; dy=0;
+  flip.classList.remove('revealed');
+  flip.style.transition='transform .4s ease';
+  flip.style.transform='';
+  flash.classList.remove('go');
+  glyph.style.opacity='1';
+  locked.classList.add('hidden');
+  reset.classList.add('hidden');
+  setTimeout(()=>{
+    prompt.classList.remove('hidden');
+    prompt.querySelector('.big').textContent='Твоя карта ждёт';
+    prompt.querySelector('.sub').textContent='Потяни рубашку вверх, чтобы вытянуть карту';
+  },400);
+});
+
+/* дата в шапке */
+const days=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+const now=new Date();
+document.getElementById('dateline').textContent=days[now.getDay()]+' · '+(now.getHours()<12?'утро':now.getHours()<18?'день':'вечер');
+
+if(TG){ TG.ready(); TG.expand(); }
+</script>
+</body>
+</html>
