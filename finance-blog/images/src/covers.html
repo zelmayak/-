@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Обложки для постов</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;1,600&family=Manrope:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EC; --paper-2:#EAE3D4; --ink:#1B1F1C; --muted:#5E655F;
+    --green:#1F6B4F; --green-2:#5BC096; --soft:#DCEBE3; --gold:#C8963E;
+    --night:#0F2A20; --night-2:#174233;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#888;display:flex;flex-wrap:wrap;gap:40px;padding:40px;font-family:'Manrope',sans-serif}
+  .card{width:1080px;height:1080px;position:relative;overflow:hidden;display:flex;flex-direction:column;padding:88px}
+  .card.light{background:var(--paper);color:var(--ink)}
+  .card.dark{background:var(--night);color:#EEF2EE}
+  .card .tag{font:700 26px/1 'Manrope';letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+  .card.dark .tag{color:var(--green-2)}
+  .card h1{font:600 84px/1.08 'Lora',serif;letter-spacing:-.01em;margin-top:28px;max-width:860px}
+  .card h1 em{font-style:italic;color:var(--green)}
+  .card.dark h1 em{color:var(--green-2)}
+  .art{position:absolute;left:0;right:0;bottom:0;height:600px}
+  .art svg{width:100%;height:100%}
+  .brand{position:absolute;right:88px;top:74px;display:flex;align-items:center;gap:16px;font:600 30px 'Lora',serif;z-index:2}
+  .brand i{width:48px;height:48px;border-radius:12px;background:var(--green);color:#fff;display:grid;place-items:center;font:700 24px 'Manrope';font-style:normal}
+  .card.dark .brand i{background:var(--green-2);color:var(--night)}
+  /* Clean variant: illustration only */
+  body.clean .tag, body.clean h1, body.clean .brand{display:none}
+  body.clean .art{top:120px;bottom:120px;left:100px;right:100px;height:auto}
+</style>
+</head>
+<body>
+
+<!-- 1. Compound interest -->
+<div class="card light" id="compound">
+  <span class="tag">Стратегия</span>
+  <h1>Сила <em>сложного</em> процента</h1>
+  <div class="art"><svg viewBox="0 0 1080 600">
+    <defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1F6B4F" stop-opacity=".35"/><stop offset="1" stop-color="#1F6B4F" stop-opacity="0"/></linearGradient></defs>
+    <g stroke="#DDD6C8" stroke-width="2"><line x1="0" y1="200" x2="1080" y2="200"/><line x1="0" y1="330" x2="1080" y2="330"/><line x1="0" y1="460" x2="1080" y2="460"/></g>
+    <g fill="#EAE3D4">
+      <rect x="560" y="470" width="44" height="130" rx="6"/><rect x="624" y="450" width="44" height="150" rx="6"/><rect x="688" y="420" width="44" height="180" rx="6"/><rect x="752" y="380" width="44" height="220" rx="6"/><rect x="816" y="330" width="44" height="270" rx="6"/><rect x="880" y="260" width="44" height="340" rx="6"/><rect x="944" y="170" width="44" height="430" rx="6"/>
+    </g>
+    <path d="M0,590 C260,575 520,540 700,450 S960,180 1080,40 L1080,600 L0,600Z" fill="url(#g1)"/>
+    <path d="M0,590 L1080,400" stroke="#8C948E" stroke-width="5" stroke-dasharray="14 14" fill="none"/>
+    <path d="M0,590 C260,575 520,540 700,450 S960,180 1080,40" stroke="#1F6B4F" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <circle cx="1010" cy="110" r="22" fill="#F6F3EC" stroke="#1F6B4F" stroke-width="8"/>
+  </svg></div>
+  <div class="brand"><i>%</i>Сложный процент</div>
+</div>
+
+<!-- 2. Bonds ladder -->
+<div class="card dark" id="bonds">
+  <span class="tag">Облигации</span>
+  <h1>Лестница <em>облигаций</em></h1>
+  <div class="art"><svg viewBox="0 0 1080 600">
+    <g fill="#174233">
+      <rect x="440" y="480" width="128" height="120"/><rect x="568" y="390" width="128" height="210"/><rect x="696" y="300" width="128" height="300"/><rect x="824" y="210" width="128" height="390"/><rect x="952" y="120" width="128" height="480"/>
+    </g>
+    <g fill="#5BC096"><rect x="440" y="472" width="128" height="10"/><rect x="568" y="382" width="128" height="10"/><rect x="696" y="292" width="128" height="10"/><rect x="824" y="202" width="128" height="10"/><rect x="952" y="112" width="128" height="10"/></g>
+    <g font-family="Manrope" font-weight="700" font-size="30" fill="#5BC096" opacity=".75" text-anchor="middle">
+      <text x="504" y="545">1 год</text><text x="632" y="455">2</text><text x="760" y="365">3</text><text x="888" y="275">4</text><text x="1016" y="185">5</text>
+    </g>
+    <g>
+      <g transform="translate(504,420)"><ellipse rx="40" ry="14" cy="14" fill="#9C7330"/><ellipse rx="40" ry="14" fill="#C8963E"/></g>
+      <g transform="translate(632,330)"><ellipse rx="40" ry="14" cy="14" fill="#9C7330"/><ellipse rx="40" ry="14" fill="#C8963E"/></g>
+      <g transform="translate(760,240)"><ellipse rx="40" ry="14" cy="14" fill="#9C7330"/><ellipse rx="40" ry="14" fill="#C8963E"/></g>
+      <g transform="translate(888,150)"><ellipse rx="40" ry="14" cy="14" fill="#9C7330"/><ellipse rx="40" ry="14" fill="#C8963E"/></g>
+      <g transform="translate(1016,60)"><ellipse rx="40" ry="14" cy="14" fill="#9C7330"/><ellipse rx="40" ry="14" fill="#C8963E"/></g>
+    </g>
+  </svg></div>
+  <div class="brand"><i>%</i>Сложный процент</div>
+</div>
+
+<!-- 3. Diversification -->
+<div class="card light" id="diversification">
+  <span class="tag">Портфель</span>
+  <h1>Не храните яйца <em>в одной</em> корзине</h1>
+  <div class="art"><svg viewBox="0 0 1080 600" data-pad="70">
+    <g transform="translate(800,320)" fill="none" stroke-width="110">
+      <circle r="190" stroke="#1F6B4F" stroke-dasharray="477 1194" transform="rotate(-90)"/>
+      <circle r="190" stroke="#5BC096" stroke-dasharray="298 1194" stroke-dashoffset="-477" transform="rotate(-90)"/>
+      <circle r="190" stroke="#C8963E" stroke-dasharray="179 1194" stroke-dashoffset="-775" transform="rotate(-90)"/>
+      <circle r="190" stroke="#8C948E" stroke-dasharray="143 1194" stroke-dashoffset="-954" transform="rotate(-90)"/>
+      <circle r="190" stroke="#DCEBE3" stroke-dasharray="97 1194" stroke-dashoffset="-1097" transform="rotate(-90)"/>
+    </g>
+    <circle cx="800" cy="320" r="134" fill="#F6F3EC"/>
+    <text x="800" y="342" text-anchor="middle" font-family="Lora" font-weight="600" font-size="64" fill="#1B1F1C">100%</text>
+  </svg></div>
+  <div class="brand"><i>%</i>Сложный процент</div>
+</div>
+
+<!-- 4. Stocks -->
+<div class="card dark" id="stocks">
+  <span class="tag">Акции</span>
+  <h1>Как читать <em>рынок</em> без паники</h1>
+  <div class="art"><svg viewBox="0 0 1080 600">
+    <g stroke="#174233" stroke-width="2"><line x1="0" y1="180" x2="1080" y2="180"/><line x1="0" y1="320" x2="1080" y2="320"/><line x1="0" y1="460" x2="1080" y2="460"/></g>
+    <g id="candles" stroke-width="5" stroke-linecap="round"></g>
+    <path d="M440,520 C560,480 620,500 700,420 S880,260 1060,140" stroke="#C8963E" stroke-width="6" fill="none" stroke-dasharray="2 14" stroke-linecap="round"/>
+  </svg></div>
+  <div class="brand"><i>%</i>Сложный процент</div>
+</div>
+
+<!-- 5. Taxes / IIS -->
+<div class="card light" id="taxes">
+  <span class="tag">Налоги и ИИС</span>
+  <h1>Законно платим <em>меньше</em></h1>
+  <div class="art"><svg viewBox="0 0 1080 600">
+    <circle cx="820" cy="340" r="260" fill="#DCEBE3"/>
+    <path d="M820,120 L990,190 V330 C990,450 915,530 820,565 C725,530 650,450 650,330 V190 Z" fill="#1F6B4F"/>
+    <path d="M820,155 L960,212 V330 C960,432 898,500 820,530 Z" fill="#fff" opacity=".1"/>
+    <g stroke="#F6F3EC" stroke-width="20" stroke-linecap="round" fill="none">
+      <line x1="770" y1="420" x2="870" y2="270"/>
+      <circle cx="768" cy="290" r="26"/><circle cx="872" cy="400" r="26"/>
+    </g>
+    <g fill="#C8963E"><circle cx="560" cy="500" r="30"/><circle cx="1030" cy="180" r="20"/><circle cx="610" cy="200" r="14"/></g>
+  </svg></div>
+  <div class="brand"><i>%</i>Сложный процент</div>
+</div>
+
+<!-- 6. Psychology / drawdown -->
+<div class="card dark" id="psychology">
+  <span class="tag">Психология</span>
+  <h1>Просадка — это <em>не конец</em></h1>
+  <div class="art"><svg viewBox="0 0 1080 600">
+    <defs><linearGradient id="g6" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#5BC096" stop-opacity=".3"/><stop offset="1" stop-color="#5BC096" stop-opacity="0"/></linearGradient></defs>
+    <path d="M0,330 C120,300 200,260 300,280 S420,470 520,480 S660,360 760,300 S940,150 1080,90 L1080,600 L0,600Z" fill="url(#g6)"/>
+    <path d="M0,330 C120,300 200,260 300,280 S420,470 520,480 S660,360 760,300 S940,150 1080,90" stroke="#5BC096" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <line x1="0" y1="270" x2="1080" y2="270" stroke="#EEF2EE" stroke-opacity=".25" stroke-width="3" stroke-dasharray="12 12"/>
+    <circle cx="520" cy="480" r="20" fill="#C8963E"/>
+    <circle cx="1040" cy="106" r="20" fill="#0F2A20" stroke="#5BC096" stroke-width="8"/>
+  </svg></div>
+  <div class="brand"><i>%</i>Сложный процент</div>
+</div>
+
+<!-- 7. Dividends -->
+<div class="card light" id="dividends">
+  <span class="tag">Дивиденды</span>
+  <h1>Пассивный доход <em>шаг за шагом</em></h1>
+  <div class="art"><svg viewBox="0 0 1080 600" id="coins"></svg></div>
+  <div class="brand"><i>%</i>Сложный процент</div>
+</div>
+
+<!-- 8. Emergency fund -->
+<div class="card dark" id="safety">
+  <span class="tag">Основы</span>
+  <h1>Сначала — <em>подушка</em> безопасности</h1>
+  <div class="art"><svg viewBox="0 0 1080 600">
+    <rect x="600" y="230" width="400" height="330" rx="40" fill="#174233"/>
+    <rect x="600" y="230" width="400" height="90" rx="40" fill="#1F5A44"/>
+    <rect x="600" y="290" width="400" height="30" fill="#1F5A44"/>
+    <circle cx="800" cy="440" r="70" fill="none" stroke="#5BC096" stroke-width="14"/>
+    <line x1="800" y1="440" x2="845" y2="400" stroke="#5BC096" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="800" cy="440" r="12" fill="#5BC096"/>
+    <g fill="#C8963E">
+      <rect x="650" y="150" width="300" height="40" rx="8"/><rect x="670" y="105" width="260" height="40" rx="8" fill="#DDB063"/><rect x="690" y="60" width="220" height="40" rx="8"/>
+    </g>
+    <rect x="640" y="190" width="320" height="40" rx="8" fill="#DDB063"/>
+  </svg></div>
+  <div class="brand"><i>%</i>Сложный процент</div>
+</div>
+
+<script>
+  // Candlesticks for #stocks
+  (function(){
+    const g = document.getElementById('candles'); const NS = 'http://www.w3.org/2000/svg';
+    const closes = [470,455,480,440,450,410,430,395,400,360,375,330,300,320,270,240,255,200];
+    let prev = 500;
+    closes.forEach((c,i) => {
+      const x = 60 + i*58, up = c < prev, top = Math.min(c,prev), bot = Math.max(c,prev);
+      const col = up ? '#5BC096' : '#C8963E';
+      const wick = document.createElementNS(NS,'line');
+      Object.entries({x1:x,x2:x,y1:top-30,y2:bot+30,stroke:col}).forEach(([k,v])=>wick.setAttribute(k,v));
+      const body = document.createElementNS(NS,'rect');
+      Object.entries({x:x-17,y:top,width:34,height:Math.max(bot-top,8),rx:4,fill:col}).forEach(([k,v])=>body.setAttribute(k,v));
+      g.append(wick, body); prev = c;
+    });
+  })();
+  // Coin stacks for #dividends
+  (function(){
+    const svg = document.getElementById('coins'); const NS = 'http://www.w3.org/2000/svg';
+    const stacks = [2,4,6,9,13,18];
+    let html = '';
+    stacks.forEach((n,i) => {
+      const cx = 400 + i*125;
+      for (let k=0;k<n;k++){
+        const cy = 560 - k*26;
+        html += `<ellipse cx="${cx}" cy="${cy+12}" rx="52" ry="18" fill="#17543E"/><ellipse cx="${cx}" cy="${cy}" rx="52" ry="18" fill="${k===n-1?'#C8963E':'#1F6B4F'}"/>`;
+      }
+    });
+    html += `<path d="M330,470 C520,440 760,300 1060,40" stroke="#C8963E" stroke-width="6" fill="none" stroke-dasharray="2 16" stroke-linecap="round"/>`;
+    svg.innerHTML = html;
+  })();
+  // Clean variant: hide text and fit each illustration to the card
+  if (location.hash === '#clean') {
+    document.body.classList.add('clean');
+    document.querySelectorAll('.art svg').forEach(svg => {
+      const b = svg.getBBox(), pad = +(svg.dataset.pad || 10); // getBBox ignores stroke width
+      svg.setAttribute('viewBox', [b.x-pad, b.y-pad, b.width+pad*2, b.height+pad*2].join(' '));
+    });
+  }
+</script>
+</body>
+</html>
