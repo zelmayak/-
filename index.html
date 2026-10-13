@@ -2,407 +2,1074 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Карта дня — ритуал</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Финансовый портрет</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  :root{
-    --obsidian:#0A0E14;
-    --surface:#121826;
-    --surface-2:#1A2233;
-    --text:#E8ECF4;
-    --muted:#8A93A6;
-    --aurora-1:#4FD1C5;
-    --aurora-2:#8B5CF6;
-    --aurora-3:#EC4899;
-    --logika:#56CCF2;
-    --kripta:#F2C94C;
-    --invest:#6FCF97;
-    --nn:#BB6BD9;
-    --display:'Fraunces',Georgia,serif;
-    --ui:'Space Grotesk',system-ui,sans-serif;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%}
-  body{
-    background:
-      radial-gradient(120% 80% at 50% -10%, rgba(139,92,246,.14), transparent 55%),
-      radial-gradient(90% 60% at 50% 110%, rgba(79,209,197,.10), transparent 55%),
-      var(--obsidian);
-    color:var(--text);
-    font-family:var(--ui);
-    display:flex;flex-direction:column;align-items:center;
-    min-height:100dvh;overflow:hidden;
-    user-select:none;-webkit-user-select:none;
-  }
-  .stage{
-    width:100%;max-width:420px;flex:1;
-    display:flex;flex-direction:column;
-    padding:26px 22px calc(22px + env(safe-area-inset-bottom));
-    position:relative;
-  }
+:root {
+  --bg: #0D0D0D;
+  --card: #1A1A1A;
+  --card-border: #2A2A2A;
+  --text: #FFFFFF;
+  --text-secondary: #888888;
+  --text-muted: #555555;
+  --green: #00FF88;
+  --green-dim: rgba(0,255,136,0.15);
+  --red: #FF4444;
+  --red-dim: rgba(255,68,68,0.15);
+  --yellow: #FFD700;
+  --yellow-dim: rgba(255,215,0,0.15);
+  --blue: #4FC3F7;
+  --purple: #BB86FC;
+  --orange: #FF9800;
+  --teal: #26A69A;
+  --radius: 16px;
+  --gutter: 16px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--gutter);
+}
+header {
+  text-align: center;
+  padding: 40px var(--gutter) 20px;
+}
+header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+header h1 span { color: var(--green); }
+header p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 8px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gutter);
+}
+@media (max-width: 768px) {
+  .grid { grid-template-columns: 1fr; }
+  header h1 { font-size: 24px; }
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title .icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.full-width { grid-column: 1 / -1; }
 
-  /* ── header / day mode ── */
-  .top{display:flex;flex-direction:column;gap:14px;margin-bottom:8px}
-  .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
-  .datetxt{font-family:var(--display);font-size:20px;font-weight:500;letter-spacing:.01em}
-  .mode{
-    display:flex;gap:8px;background:var(--surface);border-radius:14px;padding:5px;
-    border:1px solid rgba(255,255,255,.05);
-  }
-  .mode button{
-    flex:1;background:transparent;border:none;color:var(--muted);
-    font-family:var(--ui);font-size:13px;font-weight:500;padding:9px 6px;border-radius:10px;
-    cursor:pointer;transition:.25s;letter-spacing:.01em;
-  }
-  .mode button.on{background:var(--surface-2);color:var(--text);box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
-  .mode .hint{font-size:10px;color:var(--muted);display:block;margin-top:2px;font-weight:400}
+/* Form elements */
+.form-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.form-row input, .form-row select {
+  background: var(--bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-row input:focus, .form-row select:focus {
+  border-color: var(--green);
+}
+.form-row input::placeholder { color: var(--text-muted); }
+.form-row .name-input { flex: 2; min-width: 0; }
+.form-row .amount-input { flex: 1; min-width: 0; }
+.form-row .rate-input { width: 80px; flex-shrink: 0; }
+.form-row .pct-input { width: 80px; flex-shrink: 0; }
+.form-row select { flex: 1; min-width: 0; cursor: pointer; }
+select option { background: var(--card); color: var(--text); }
+.btn-delete {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--red);
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+.btn-delete:hover { background: var(--red-dim); border-color: var(--red); }
+.btn-add {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px dashed var(--card-border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  margin-top: 4px;
+}
+.btn-add:hover { border-color: var(--green); color: var(--green); }
+.income-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.income-input:focus { border-color: var(--green); }
+.income-input::placeholder { color: var(--text-muted); font-weight: 400; }
+.remaining-pct {
+  text-align: right;
+  font-size: 13px;
+  margin-top: 8px;
+  transition: color 0.3s;
+}
+.calc-amount {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 4px;
+  white-space: nowrap;
+}
 
-  /* ── deck area ── */
-  .arena{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;position:relative}
-  .flip{width:230px;height:340px;perspective:1400px;position:relative}
-  .flip-inner{
-    position:absolute;inset:0;transform-style:preserve-3d;
-    transition:transform .85s cubic-bezier(.2,.9,.25,1.05);
-  }
-  .flip.revealed .flip-inner{transform:rotateY(180deg)}
-  .face{
-    position:absolute;inset:0;border-radius:22px;backface-visibility:hidden;
-    display:flex;flex-direction:column;overflow:hidden;
-  }
+/* Dashboard */
+.dashboard-section {
+  margin-top: 32px;
+}
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: var(--gutter);
+  letter-spacing: -0.01em;
+}
+.net-worth-card {
+  text-align: center;
+  padding: 40px 24px;
+  position: relative;
+  overflow: hidden;
+}
+.net-worth-card::before {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -20%;
+  right: -20%;
+  height: 100%;
+  border-radius: 50%;
+  opacity: 0.06;
+  transition: background 0.5s;
+}
+.net-worth-card.positive::before { background: var(--green); }
+.net-worth-card.negative::before { background: var(--red); }
+.nw-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.nw-amount {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  transition: color 0.3s;
+  position: relative;
+}
+@media (max-width: 768px) { .nw-amount { font-size: 32px; } }
+.nw-breakdown {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.nw-breakdown span { display: flex; align-items: center; gap: 6px; }
+.nw-breakdown .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
-  /* card back */
-  .back{
-    background:
-      radial-gradient(80% 50% at 50% 0%, rgba(79,209,197,.28), transparent 60%),
-      radial-gradient(80% 55% at 50% 100%, rgba(236,72,153,.22), transparent 60%),
-      linear-gradient(160deg,#141b2b,#0d1420);
-    border:1px solid rgba(255,255,255,.09);
-    align-items:center;justify-content:center;cursor:pointer;
-    box-shadow:0 24px 60px -24px rgba(0,0,0,.9);
-    touch-action:none;
-  }
-  .aurora{
-    position:absolute;inset:0;opacity:.55;mix-blend-mode:screen;
-    background:conic-gradient(from 0deg at 50% 42%,var(--aurora-1),var(--aurora-2),var(--aurora-3),var(--aurora-1));
-    filter:blur(26px);transform:scale(1.1);
-    animation:spin 14s linear infinite;
-  }
-  @keyframes spin{to{transform:scale(1.1) rotate(360deg)}}
-  .glyph{
-    position:relative;width:96px;height:96px;border-radius:50%;
-    border:1px solid rgba(255,255,255,.35);
-    display:flex;align-items:center;justify-content:center;
-    font-family:var(--display);font-size:40px;color:#fff;
-    background:rgba(10,14,20,.35);backdrop-filter:blur(2px);
-  }
-  .backlabel{position:absolute;bottom:20px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:rgba(232,236,244,.7)}
+/* Charts */
+.chart-container {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+}
+.chart-container canvas { width: 100% !important; }
+.chart-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 40px 16px;
+}
 
-  /* charge ring */
-  .ring{position:absolute;inset:-14px;pointer-events:none}
-  .ring circle{fill:none;stroke-width:3;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
-  .ring .track{stroke:rgba(255,255,255,.07)}
-  .ring .prog{stroke:url(#grad);stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .05s linear;filter:drop-shadow(0 0 6px rgba(139,92,246,.6))}
+/* Health bar */
+.health-bar-wrap {
+  margin-top: 8px;
+}
+.health-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.health-track {
+  width: 100%;
+  height: 12px;
+  background: #222;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+.health-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s ease, background 0.3s;
+  min-width: 0;
+}
+.health-value {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 28px;
+  font-weight: 700;
+}
+.health-desc {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
 
-  /* card face (revealed) */
-  .front{
-    transform:rotateY(180deg);
-    background:linear-gradient(165deg,var(--surface-2),#0e1524);
-    border:1px solid var(--face-accent,rgba(255,255,255,.12));
-    box-shadow:0 0 0 1px rgba(255,255,255,.03), 0 30px 70px -30px rgba(0,0,0,.9), 0 0 40px -10px var(--face-glow,transparent);
-    padding:24px 22px;justify-content:space-between;
-  }
-  .front .row{display:flex;justify-content:space-between;align-items:center}
-  .theme{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--face-accent,#fff);font-weight:600}
-  .level{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border:1px solid rgba(255,255,255,.12);padding:4px 9px;border-radius:20px}
-  .cardnum{position:absolute;right:20px;bottom:16px;font-family:var(--display);font-size:52px;line-height:1;color:rgba(255,255,255,.06);font-weight:600}
-  .task{font-family:var(--display);font-size:23px;line-height:1.28;font-weight:500;letter-spacing:.005em}
-  .task b{color:var(--face-accent)}
-  .est{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
-  .est::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--face-accent)}
+/* Forecast */
+.forecast-chart { position: relative; height: 220px; }
+.forecast-markers {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 12px;
+  gap: 8px;
+}
+.forecast-marker {
+  text-align: center;
+  flex: 1;
+  padding: 12px 8px;
+  background: var(--bg);
+  border-radius: 10px;
+}
+.forecast-marker .period {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.forecast-marker .value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--green);
+  margin-top: 4px;
+}
 
-  /* prompt + actions */
-  .prompt{text-align:center;min-height:40px;display:flex;flex-direction:column;gap:4px}
-  .prompt .big{font-family:var(--display);font-size:17px;font-weight:500}
-  .prompt .sub{font-size:12px;color:var(--muted)}
+/* Summary table */
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.summary-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--card-border);
+}
+.summary-table td {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(42,42,42,0.4);
+}
+.summary-table .cat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.summary-table .total-row td {
+  font-weight: 600;
+  font-size: 15px;
+  border-top: 2px solid var(--card-border);
+  border-bottom: none;
+  padding-top: 14px;
+}
+.text-right { text-align: right; }
+.text-green { color: var(--green); }
+.text-red { color: var(--red); }
+.text-yellow { color: var(--yellow); }
+.text-muted { color: var(--text-secondary); }
 
-  .actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:230px;margin-top:2px}
-  .btn{
-    font-family:var(--ui);font-size:14px;font-weight:600;letter-spacing:.02em;
-    padding:14px;border-radius:14px;border:none;cursor:pointer;transition:.2s;
-  }
-  .btn.primary{background:linear-gradient(100deg,var(--aurora-2),var(--aurora-3));color:#fff}
-  .btn.primary:active{transform:translateY(1px)}
-  .btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.1)}
-  .hidden{display:none !important}
-
-  .locked{text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
-  .locked .day{font-family:var(--display);color:var(--text);font-size:18px;display:block;margin-bottom:4px}
-
-  .footnote{font-size:10.5px;color:#5B6377;text-align:center;line-height:1.5;margin-top:14px}
-
-  @keyframes burst{0%{opacity:0;transform:scale(.4)}30%{opacity:1}100%{opacity:0;transform:scale(1.9)}}
-  .flash{position:absolute;inset:0;border-radius:22px;pointer-events:none;
-    background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.9),transparent 60%);opacity:0}
-  .flash.go{animation:burst .6s ease-out}
-
-  @media (prefers-reduced-motion:reduce){
-    .aurora{animation:none}
-    .flip-inner{transition:transform .3s linear}
-  }
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in { animation: fadeIn 0.4s ease forwards; }
 </style>
 </head>
 <body>
-<div class="stage">
-  <div class="top">
-    <div>
-      <div class="eyebrow">Карта дня</div>
-      <div class="datetxt" id="dateline">Суббота · утро</div>
+<header>
+  <h1>Финансовый <span>портрет</span></h1>
+  <p>Введите данные — увидите полную финансовую картину</p>
+</header>
+
+<div class="container">
+  <!-- INPUT SECTION -->
+  <div class="grid">
+    <!-- Assets -->
+    <div class="card">
+      <div class="card-title">
+        <div class="icon" style="background:var(--green-dim);color:var(--green)">↗</div>
+        Активы
+      </div>
+      <div id="assets-list"></div>
+      <button class="btn-add" onclick="addAsset()">+ Добавить актив</button>
     </div>
-    <div class="mode" id="mode">
-      <button data-mode="light" class="on">Лёгкий день<span class="hint">карты уровня «Искра»</span></button>
-      <button data-mode="heavy">Тяжёлый день<span class="hint">только фоновые</span></button>
+
+    <!-- Debts -->
+    <div class="card">
+      <div class="card-title">
+        <div class="icon" style="background:var(--red-dim);color:var(--red)">↙</div>
+        Долги
+      </div>
+      <div id="debts-list"></div>
+      <button class="btn-add" onclick="addDebt()">+ Добавить долг</button>
+    </div>
+
+    <!-- Income -->
+    <div class="card">
+      <div class="card-title">
+        <div class="icon" style="background:rgba(79,195,247,0.15);color:var(--blue)">₽</div>
+        Ежемесячный доход
+      </div>
+      <input type="text" class="income-input" id="income-input" placeholder="Введите сумму дохода в месяц" oninput="onIncomeChange(this)">
+    </div>
+
+    <!-- Distribution -->
+    <div class="card">
+      <div class="card-title">
+        <div class="icon" style="background:rgba(187,134,252,0.15);color:var(--purple)">%</div>
+        Распределение дохода
+      </div>
+      <div id="dist-list"></div>
+      <button class="btn-add" onclick="addDist()">+ Добавить статью</button>
+      <div class="remaining-pct" id="remaining-pct"></div>
     </div>
   </div>
 
-  <div class="arena">
-    <div class="flip" id="flip">
-      <svg class="ring" id="ring" viewBox="0 0 100 100" width="258" height="378" style="width:258px;height:378px;display:none">
-        <defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#4FD1C5"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#EC4899"/>
-        </linearGradient></defs>
-        <circle class="track" cx="50" cy="50" r="48"/>
-        <circle class="prog" id="prog" cx="50" cy="50" r="48" pathLength="1"/>
-      </svg>
-      <div class="flip-inner">
-        <div class="face back" id="back">
-          <div class="aurora"></div>
-          <div class="glyph" id="glyph">✦</div>
-          <div class="backlabel">потяни вверх ↑</div>
-          <div class="flash" id="flash"></div>
-        </div>
-        <div class="face front" id="front">
-          <div class="row">
-            <span class="theme" id="f-theme">Логика</span>
-            <span class="level" id="f-level">Искра</span>
-          </div>
-          <div>
-            <div class="task" id="f-task"></div>
-          </div>
-          <div class="row">
-            <span class="est" id="f-est">1 мин · фоном</span>
-          </div>
-          <span class="cardnum" id="f-num">01</span>
+  <!-- DASHBOARD -->
+  <div class="dashboard-section" id="dashboard">
+    <div class="section-title">Дашборд</div>
+    <div class="grid">
+      <!-- Net Worth -->
+      <div class="card full-width net-worth-card positive" id="nw-card">
+        <div class="nw-label">Чистый капитал</div>
+        <div class="nw-amount" id="nw-amount">—</div>
+        <div class="nw-breakdown">
+          <span><span class="dot" style="background:var(--green)"></span> Активы: <b id="nw-assets">0 ₽</b></span>
+          <span><span class="dot" style="background:var(--red)"></span> Долги: <b id="nw-debts">0 ₽</b></span>
         </div>
       </div>
-    </div>
 
-    <div class="prompt" id="prompt">
-      <span class="big">Твоя карта ждёт</span>
-      <span class="sub">Потяни рубашку вверх, чтобы вытянуть карту</span>
-    </div>
+      <!-- Asset Structure -->
+      <div class="card">
+        <div class="card-title">Структура активов</div>
+        <div class="chart-container">
+          <canvas id="assets-chart"></canvas>
+        </div>
+        <div class="chart-empty" id="assets-chart-empty">Добавьте активы, чтобы увидеть портрет</div>
+      </div>
 
-    <div class="actions">
-      <button class="btn primary hidden" id="accept">Принять карту</button>
-      <button class="btn ghost hidden" id="reset">Сбросить · демо</button>
-    </div>
+      <!-- Income Distribution Chart -->
+      <div class="card">
+        <div class="card-title">Распределение дохода</div>
+        <div class="chart-container">
+          <canvas id="dist-chart"></canvas>
+        </div>
+        <div class="chart-empty" id="dist-chart-empty">Укажите доход и распределение</div>
+      </div>
 
-    <div class="locked hidden" id="locked">
-      <span class="day">До завтра</span>
-      одна карта в день — в этом вся суть
+      <!-- Financial Health -->
+      <div class="card">
+        <div class="card-title">Здоровье финансов</div>
+        <div class="health-value" id="health-value">—</div>
+        <div class="health-desc" id="health-desc">Добавьте данные для расчёта</div>
+        <div class="health-bar-wrap">
+          <div class="health-labels">
+            <span>Отлично</span>
+            <span>Внимание</span>
+          </div>
+          <div class="health-track">
+            <div class="health-fill" id="health-fill" style="width:0%;background:var(--green)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Forecast -->
+      <div class="card full-width">
+        <div class="card-title">Прогноз роста капитала (12 мес.)</div>
+        <div class="forecast-chart">
+          <canvas id="forecast-chart"></canvas>
+        </div>
+        <div class="chart-empty" id="forecast-chart-empty">Укажите доход и распределение для прогноза</div>
+        <div class="forecast-markers" id="forecast-markers" style="display:none">
+          <div class="forecast-marker">
+            <div class="period">3 мес.</div>
+            <div class="value" id="fc-3m">—</div>
+          </div>
+          <div class="forecast-marker">
+            <div class="period">6 мес.</div>
+            <div class="value" id="fc-6m">—</div>
+          </div>
+          <div class="forecast-marker">
+            <div class="period">12 мес.</div>
+            <div class="value" id="fc-12m">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Table -->
+      <div class="card full-width">
+        <div class="card-title">Сводка</div>
+        <table class="summary-table" id="summary-table">
+          <thead>
+            <tr>
+              <th>Название</th>
+              <th>Категория</th>
+              <th class="text-right">Сумма</th>
+            </tr>
+          </thead>
+          <tbody id="summary-body"></tbody>
+        </table>
+      </div>
     </div>
   </div>
-
-  <div class="footnote">Прототип ощущения. Вибрация работает на Android-браузере;
-  в реальном Telegram Mini App за неё отвечает HapticFeedback (в т.ч. на iPhone).</div>
 </div>
 
-<script>
-/* ─────────────── КОНТЕНТ: твои 4 колоды ───────────────
-   level: 'iskra' | 'pauza' | 'quest'   (сложность)
-   На «тяжёлый день» фильтруем только iskra.               */
-const DECKS = {
-  logika:{name:'Логика', accent:'#56CCF2', glyph:'∴', cards:[
-    {t:'Найди в сегодняшнем разговоре одну <b>подмену понятий</b> — и мысленно назови её.', level:'iskra', est:'1 мин · фоном'},
-    {t:'Разбери одно своё решение по схеме <b>«тезис → аргумент → вывод»</b>.', level:'pauza', est:'5 мин · одна остановка'},
-    {t:'Возьми спорное утверждение и построй к нему <b>сильнейший контраргумент</b>, даже если не согласен.', level:'quest', est:'30 мин · нужно время'},
-  ]},
-  kripta:{name:'Крипта', accent:'#F2C94C', glyph:'₿', cards:[
-    {t:'Заметь, где сегодня <b>цена не равна ценности</b> — в товаре, услуге, внимании.', level:'iskra', est:'1 мин · фоном'},
-    {t:'Объясни другу одним сообщением, что такое <b>ликвидность</b>, без Википедии.', level:'pauza', est:'5 мин · одна остановка'},
-    {t:'Выбери один актив и распиши, <b>что должно случиться</b>, чтобы он вырос ×2.', level:'quest', est:'30 мин · нужно время'},
-  ]},
-  invest:{name:'Инвестиции', accent:'#6FCF97', glyph:'↗', cards:[
-    {t:'Поймай одну <b>импульсивную трату</b> сегодня и не соверши её.', level:'iskra', est:'1 мин · фоном'},
-    {t:'Посчитай, во сколько тебе обошёлся <b>час твоего времени</b> в этом месяце.', level:'pauza', est:'5 мин · одна остановка'},
-    {t:'Составь <b>распределение</b> следующего дохода по конвертам до того, как он пришёл.', level:'quest', est:'30 мин · нужно время'},
-  ]},
-  nn:{name:'Нейросети', accent:'#BB6BD9', glyph:'⌘', cards:[
-    {t:'Замени одну рутинную мысль сегодня на вопрос <b>«как бы это сделал промпт?»</b>', level:'iskra', est:'1 мин · фоном'},
-    {t:'Напиши один промпт и <b>улучши его трижды</b>, замечая, что меняется в ответе.', level:'pauza', est:'5 мин · одна остановка'},
-    {t:'Собери мини-пайплайн: <b>задача → промпт → проверка результата</b> на реальном деле.', level:'quest', est:'30 мин · нужно время'},
-  ]},
-};
-const LEVELS = {iskra:'Искра', pauza:'Пауза', quest:'Квест'};
+<div style="height:60px"></div>
 
-/* ─────────────── Хаптика ───────────────
-   navigator.vibrate — для браузерного демо.
-   В Telegram Mini App заменить на:
-     Telegram.WebApp.HapticFeedback.impactOccurred('light'|'medium'|'heavy')
-     Telegram.WebApp.HapticFeedback.notificationOccurred('success')          */
-const TG = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-function haptic(kind){
-  if(TG && TG.HapticFeedback){
-    if(kind==='tick') TG.HapticFeedback.selectionChanged();
-    else if(kind==='reveal') TG.HapticFeedback.notificationOccurred('success');
-    else TG.HapticFeedback.impactOccurred(kind);
+<script>
+const CATEGORIES = ['Инвестиции','Накопительные счета','Наличные','Недвижимость','Другое'];
+const CAT_COLORS = {
+  'Инвестиции': '#00FF88',
+  'Накопительные счета': '#4FC3F7',
+  'Наличные': '#FFD700',
+  'Недвижимость': '#BB86FC',
+  'Другое': '#FF9800'
+};
+const DIST_PRESETS = [
+  {name:'Инвестиции', pct:10},
+  {name:'Накопления', pct:10},
+  {name:'Жильё / ЖКУ', pct:25},
+  {name:'Еда', pct:20},
+  {name:'Налоги', pct:13},
+  {name:'Свободные траты', pct:22}
+];
+const SAVINGS_NAMES = ['инвестиции','накопления','сбережения','вклады','инвестирование'];
+
+let assetsChart = null;
+let distChart = null;
+let forecastChart = null;
+
+function fmt(n) {
+  if (n === 0) return '0 ₽';
+  const abs = Math.abs(n);
+  let s;
+  if (abs >= 1e6) s = (n/1e6).toFixed(1).replace('.0','') + ' млн';
+  else s = n.toLocaleString('ru-RU');
+  return s + ' ₽';
+}
+
+function fmtShort(n) {
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return (n/1e6).toFixed(1).replace('.0','') + 'М ₽';
+  if (abs >= 1e3) return (n/1e3).toFixed(0) + 'К ₽';
+  return n.toLocaleString('ru-RU') + ' ₽';
+}
+
+function parseNum(str) {
+  if (!str) return 0;
+  return parseFloat(str.replace(/[^\d.,\-]/g,'').replace(',','.')) || 0;
+}
+
+function formatInput(el) {
+  const raw = el.value.replace(/[^\d]/g,'');
+  if (!raw) { el.value = ''; return; }
+  el.value = parseInt(raw,10).toLocaleString('ru-RU');
+}
+
+function createAmountInput(placeholder, cls) {
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.inputMode = 'numeric';
+  inp.placeholder = placeholder || 'Сумма ₽';
+  inp.className = cls || 'amount-input';
+  inp.addEventListener('input', function() { formatInput(this); update(); });
+  return inp;
+}
+
+/* ── Assets ── */
+function addAsset(name, amount, cat) {
+  const list = document.getElementById('assets-list');
+  const row = document.createElement('div');
+  row.className = 'form-row';
+
+  const nameInp = document.createElement('input');
+  nameInp.type = 'text';
+  nameInp.className = 'name-input';
+  nameInp.placeholder = 'Название актива';
+  nameInp.value = name || '';
+  nameInp.addEventListener('input', update);
+
+  const amtInp = createAmountInput('Сумма ₽', 'amount-input');
+  if (amount) { amtInp.value = parseInt(amount,10).toLocaleString('ru-RU'); }
+
+  const sel = document.createElement('select');
+  CATEGORIES.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    if (c === cat) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', update);
+
+  const del = document.createElement('button');
+  del.className = 'btn-delete';
+  del.innerHTML = '×';
+  del.onclick = () => { row.remove(); update(); };
+
+  row.append(nameInp, amtInp, sel, del);
+  list.appendChild(row);
+  update();
+}
+
+/* ── Debts ── */
+function addDebt(name, amount, rate) {
+  const list = document.getElementById('debts-list');
+  const row = document.createElement('div');
+  row.className = 'form-row';
+
+  const nameInp = document.createElement('input');
+  nameInp.type = 'text';
+  nameInp.className = 'name-input';
+  nameInp.placeholder = 'Название долга';
+  nameInp.value = name || '';
+  nameInp.addEventListener('input', update);
+
+  const amtInp = createAmountInput('Сумма ₽', 'amount-input');
+  if (amount) { amtInp.value = parseInt(amount,10).toLocaleString('ru-RU'); }
+
+  const rateInp = document.createElement('input');
+  rateInp.type = 'text';
+  rateInp.inputMode = 'decimal';
+  rateInp.className = 'rate-input';
+  rateInp.placeholder = '% год.';
+  rateInp.value = rate || '';
+  rateInp.addEventListener('input', update);
+
+  const del = document.createElement('button');
+  del.className = 'btn-delete';
+  del.innerHTML = '×';
+  del.onclick = () => { row.remove(); update(); };
+
+  row.append(nameInp, amtInp, rateInp, del);
+  list.appendChild(row);
+  update();
+}
+
+/* ── Income ── */
+function onIncomeChange(el) {
+  formatInput(el);
+  update();
+}
+
+/* ── Distribution ── */
+function addDist(name, pct) {
+  const list = document.getElementById('dist-list');
+  const row = document.createElement('div');
+  row.className = 'form-row';
+
+  const nameInp = document.createElement('input');
+  nameInp.type = 'text';
+  nameInp.className = 'name-input';
+  nameInp.placeholder = 'Статья расходов';
+  nameInp.value = name || '';
+  nameInp.addEventListener('input', update);
+
+  const pctInp = document.createElement('input');
+  pctInp.type = 'text';
+  pctInp.inputMode = 'decimal';
+  pctInp.className = 'pct-input';
+  pctInp.placeholder = '%';
+  pctInp.value = pct != null ? pct : '';
+  pctInp.addEventListener('input', update);
+
+  const calcSpan = document.createElement('span');
+  calcSpan.className = 'calc-amount';
+  calcSpan.dataset.calc = '1';
+
+  const del = document.createElement('button');
+  del.className = 'btn-delete';
+  del.innerHTML = '×';
+  del.onclick = () => { row.remove(); update(); };
+
+  row.append(nameInp, pctInp, calcSpan, del);
+  list.appendChild(row);
+  update();
+}
+
+/* ── Collect Data ── */
+function getAssets() {
+  const rows = document.querySelectorAll('#assets-list .form-row');
+  const items = [];
+  rows.forEach(r => {
+    const inputs = r.querySelectorAll('input');
+    const sel = r.querySelector('select');
+    const name = inputs[0].value.trim();
+    const amount = parseNum(inputs[1].value);
+    const cat = sel.value;
+    if (name || amount) items.push({name: name || 'Без названия', amount, cat});
+  });
+  return items;
+}
+
+function getDebts() {
+  const rows = document.querySelectorAll('#debts-list .form-row');
+  const items = [];
+  rows.forEach(r => {
+    const inputs = r.querySelectorAll('input');
+    const name = inputs[0].value.trim();
+    const amount = parseNum(inputs[1].value);
+    const rate = parseFloat(inputs[2].value.replace(',','.')) || 0;
+    if (name || amount) items.push({name: name || 'Без названия', amount, rate});
+  });
+  return items;
+}
+
+function getIncome() {
+  return parseNum(document.getElementById('income-input').value);
+}
+
+function getDist() {
+  const rows = document.querySelectorAll('#dist-list .form-row');
+  const items = [];
+  rows.forEach(r => {
+    const inputs = r.querySelectorAll('input');
+    const name = inputs[0].value.trim();
+    const pct = parseFloat(inputs[1].value.replace(',','.')) || 0;
+    if (name || pct) items.push({name: name || 'Без названия', pct});
+  });
+  return items;
+}
+
+/* ── Update Everything ── */
+function update() {
+  const assets = getAssets();
+  const debts = getDebts();
+  const income = getIncome();
+  const dist = getDist();
+
+  const totalAssets = assets.reduce((s,a) => s + a.amount, 0);
+  const totalDebts = debts.reduce((s,d) => s + d.amount, 0);
+  const netWorth = totalAssets - totalDebts;
+
+  updateDistCalc(income, dist);
+  updateNetWorth(netWorth, totalAssets, totalDebts);
+  updateAssetsChart(assets);
+  updateDistChart(dist, income);
+  updateHealth(totalAssets, totalDebts);
+  updateForecast(netWorth, income, dist);
+  updateSummary(assets, debts, totalAssets, totalDebts, netWorth);
+}
+
+function updateDistCalc(income, dist) {
+  const rows = document.querySelectorAll('#dist-list .form-row');
+  let totalPct = 0;
+  rows.forEach((r, i) => {
+    const calc = r.querySelector('[data-calc]');
+    const pctInp = r.querySelectorAll('input')[1];
+    const pct = parseFloat(pctInp.value.replace(',','.')) || 0;
+    totalPct += pct;
+    if (calc) {
+      const amt = income * pct / 100;
+      calc.textContent = income > 0 && pct > 0 ? '= ' + fmt(Math.round(amt)) : '';
+    }
+  });
+  const rem = document.getElementById('remaining-pct');
+  const left = 100 - totalPct;
+  if (totalPct > 0) {
+    if (left > 0) {
+      rem.textContent = 'Нераспределено: ' + left.toFixed(1) + '%';
+      rem.style.color = 'var(--yellow)';
+    } else if (left === 0) {
+      rem.textContent = 'Всё распределено ✓';
+      rem.style.color = 'var(--green)';
+    } else {
+      rem.textContent = 'Превышение: ' + Math.abs(left).toFixed(1) + '%';
+      rem.style.color = 'var(--red)';
+    }
+  } else {
+    rem.textContent = '';
+  }
+}
+
+function updateNetWorth(nw, assets, debts) {
+  const card = document.getElementById('nw-card');
+  const el = document.getElementById('nw-amount');
+  const hasData = assets > 0 || debts > 0;
+
+  if (!hasData) {
+    el.textContent = '—';
+    el.style.color = 'var(--text)';
+    card.className = 'card full-width net-worth-card';
+  } else {
+    el.textContent = (nw >= 0 ? '+' : '') + fmt(nw);
+    el.style.color = nw >= 0 ? 'var(--green)' : 'var(--red)';
+    card.className = 'card full-width net-worth-card ' + (nw >= 0 ? 'positive' : 'negative');
+  }
+  document.getElementById('nw-assets').textContent = fmt(assets);
+  document.getElementById('nw-debts').textContent = fmt(debts);
+}
+
+function updateAssetsChart(assets) {
+  const canvas = document.getElementById('assets-chart');
+  const empty = document.getElementById('assets-chart-empty');
+
+  if (assets.length === 0 || assets.every(a => a.amount === 0)) {
+    canvas.style.display = 'none';
+    empty.style.display = 'block';
+    if (assetsChart) { assetsChart.destroy(); assetsChart = null; }
     return;
   }
-  if(!navigator.vibrate) return;
-  const map={tick:8, light:12, medium:24, heavy:[30,20,45], reveal:[40,25,60]};
-  navigator.vibrate(map[kind]||10);
+  canvas.style.display = 'block';
+  empty.style.display = 'none';
+
+  const grouped = {};
+  assets.forEach(a => {
+    if (!grouped[a.cat]) grouped[a.cat] = 0;
+    grouped[a.cat] += a.amount;
+  });
+  const labels = Object.keys(grouped);
+  const data = Object.values(grouped);
+  const colors = labels.map(l => CAT_COLORS[l] || '#888');
+
+  if (assetsChart) assetsChart.destroy();
+  assetsChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderWidth: 0,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '65%',
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: '#888', font: { family: 'Inter', size: 12 }, padding: 12, usePointStyle: true, pointStyleWidth: 8 } },
+        tooltip: {
+          backgroundColor: '#1A1A1A',
+          titleColor: '#fff',
+          bodyColor: '#ccc',
+          borderColor: '#2A2A2A',
+          borderWidth: 1,
+          cornerRadius: 10,
+          padding: 12,
+          callbacks: {
+            label: function(ctx) {
+              const total = ctx.dataset.data.reduce((s,v) => s + v, 0);
+              const pct = total > 0 ? (ctx.raw / total * 100).toFixed(1) : 0;
+              return ctx.label + ': ' + fmt(ctx.raw) + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
 }
 
-/* ─────────────── Состояние ─────────────── */
-let dayMode='light';
-let dragging=false, startY=0, dy=0, lastTickDist=0, drawn=false;
-const THRESHOLD=150;   // сколько тянуть вверх, чтобы карта «оторвалась»
-const MAXPULL=230;     // дальше не тянется
+function updateDistChart(dist, income) {
+  const canvas = document.getElementById('dist-chart');
+  const empty = document.getElementById('dist-chart-empty');
 
-const flip=document.getElementById('flip');
-const back=document.getElementById('back');
-const prompt=document.getElementById('prompt');
-const accept=document.getElementById('accept');
-const reset=document.getElementById('reset');
-const locked=document.getElementById('locked');
-const flash=document.getElementById('flash');
-const glyph=document.getElementById('glyph');
+  if (dist.length === 0 || income === 0 || dist.every(d => d.pct === 0)) {
+    canvas.style.display = 'none';
+    empty.style.display = 'block';
+    if (distChart) { distChart.destroy(); distChart = null; }
+    return;
+  }
+  canvas.style.display = 'block';
+  empty.style.display = 'none';
 
-/* режим дня */
-document.getElementById('mode').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b||drawn) return;
-  [...e.currentTarget.children].forEach(x=>x.classList.remove('on'));
-  b.classList.add('on'); dayMode=b.dataset.mode; haptic('light');
-});
+  const labels = dist.map(d => d.name);
+  const data = dist.map(d => Math.round(income * d.pct / 100));
+  const greens = ['#00FF88','#00CC6A','#26A69A','#4FC3F7'];
+  const neutrals = ['#BB86FC','#FF9800','#FFD700','#8888AA','#6688AA'];
+  const colors = dist.map((d, i) => {
+    const n = d.name.toLowerCase();
+    if (SAVINGS_NAMES.some(s => n.includes(s))) return greens[i % greens.length];
+    if (n.includes('долг') || n.includes('кредит')) return '#FF4444';
+    return neutrals[i % neutrals.length];
+  });
 
-/* выбор карты по режиму */
-function pickCard(){
-  const keys=Object.keys(DECKS);
-  const deckKey=keys[Math.floor(Math.random()*keys.length)];
-  const deck=DECKS[deckKey];
-  let pool=deck.cards;
-  if(dayMode==='heavy') pool=deck.cards.filter(c=>c.level==='iskra'); // тяжёлый день = только фоновые
-  const card=pool[Math.floor(Math.random()*pool.length)];
-  const idx=deck.cards.indexOf(card)+1;
-  return {deckKey,deck,card,idx};
+  if (distChart) distChart.destroy();
+  distChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderWidth: 0,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '65%',
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: '#888', font: { family: 'Inter', size: 12 }, padding: 12, usePointStyle: true, pointStyleWidth: 8 } },
+        tooltip: {
+          backgroundColor: '#1A1A1A',
+          titleColor: '#fff',
+          bodyColor: '#ccc',
+          borderColor: '#2A2A2A',
+          borderWidth: 1,
+          cornerRadius: 10,
+          padding: 12,
+          callbacks: {
+            label: function(ctx) {
+              const d = dist[ctx.dataIndex];
+              return d.name + ': ' + fmt(ctx.raw) + ' (' + d.pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
 }
 
-/* ─────────────── Жест: свайп вверх ───────────────
-   Карта следует за пальцем; за порогом — отрывается и раскрывается. */
-function startDrag(e){
-  if(drawn||dragging) return;
-  e.preventDefault();
-  dragging=true; startY=e.clientY; dy=0; lastTickDist=0;
-  flip.style.transition='none';          // во время тяги карта идёт за пальцем без задержки
-  haptic('light');
-  prompt.querySelector('.big').textContent='Тянешь карту…';
-  prompt.querySelector('.sub').textContent='веди вверх';
-}
-function moveDrag(e){
-  if(!dragging||drawn) return;
-  dy=Math.max(0,Math.min(startY-e.clientY,MAXPULL));   // только вверх, с ограничением
-  const p=Math.min(dy/THRESHOLD,1);
-  flip.style.transform=`translateY(${-dy}px) scale(${1+p*0.05}) rotate(${(Math.random()-.5)*p*1.5}deg)`;
-  glyph.style.opacity=String(1-p*0.5);
-  // нарастающие тики: шаг между ними сокращается ближе к порогу
-  const step=30-p*18;
-  if(dy-lastTickDist>=step){ haptic('tick'); lastTickDist=dy; }
-  if(p>=1){
-    prompt.querySelector('.big').textContent='Отпусти';
-    prompt.querySelector('.sub').textContent='карта готова открыться';
+function updateHealth(totalAssets, totalDebts) {
+  const val = document.getElementById('health-value');
+  const desc = document.getElementById('health-desc');
+  const fill = document.getElementById('health-fill');
+
+  if (totalAssets === 0 && totalDebts === 0) {
+    val.textContent = '—';
+    val.style.color = 'var(--text)';
+    desc.textContent = 'Добавьте данные для расчёта';
+    fill.style.width = '0%';
+    return;
+  }
+
+  const ratio = totalAssets > 0 ? (totalDebts / totalAssets * 100) : (totalDebts > 0 ? 100 : 0);
+  const capped = Math.min(ratio, 100);
+
+  val.textContent = ratio.toFixed(0) + '%';
+  fill.style.width = capped + '%';
+
+  if (ratio <= 25) {
+    val.style.color = 'var(--green)';
+    fill.style.background = 'var(--green)';
+    desc.textContent = 'Отличное финансовое здоровье';
+  } else if (ratio <= 50) {
+    val.style.color = 'var(--yellow)';
+    fill.style.background = 'var(--yellow)';
+    desc.textContent = 'Нормальное состояние';
+  } else {
+    val.style.color = 'var(--red)';
+    fill.style.background = 'var(--red)';
+    desc.textContent = 'Требует внимания — долги превышают 50% активов';
   }
 }
-function endDrag(){
-  if(!dragging||drawn) return;
-  dragging=false;
-  if(dy>=THRESHOLD){ finishDraw(); }
-  else {
-    // не дотянул — карта плавно возвращается в колоду
-    flip.style.transition='transform .45s cubic-bezier(.25,.9,.3,1.2)';
-    flip.style.transform='';
-    glyph.style.opacity='1';
-    prompt.querySelector('.big').textContent='Ещё немного';
-    prompt.querySelector('.sub').textContent='дотяни до конца, чтобы карта открылась';
+
+function updateForecast(netWorth, income, dist) {
+  const canvas = document.getElementById('forecast-chart');
+  const empty = document.getElementById('forecast-chart-empty');
+  const markers = document.getElementById('forecast-markers');
+
+  let monthlySavings = 0;
+  dist.forEach(d => {
+    if (SAVINGS_NAMES.some(s => d.name.toLowerCase().includes(s))) {
+      monthlySavings += income * d.pct / 100;
+    }
+  });
+
+  if (income === 0 || monthlySavings === 0) {
+    canvas.style.display = 'none';
+    empty.style.display = 'block';
+    markers.style.display = 'none';
+    if (forecastChart) { forecastChart.destroy(); forecastChart = null; }
+    return;
   }
+  canvas.style.display = 'block';
+  empty.style.display = 'none';
+  markers.style.display = 'flex';
+
+  const labels = [];
+  const data = [];
+  const months = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+  const now = new Date();
+  for (let i = 0; i <= 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    labels.push(months[d.getMonth()]);
+    data.push(Math.round(netWorth + monthlySavings * i));
+  }
+
+  document.getElementById('fc-3m').textContent = fmtShort(data[3]);
+  document.getElementById('fc-6m').textContent = fmtShort(data[6]);
+  document.getElementById('fc-12m').textContent = fmtShort(data[12]);
+
+  if (forecastChart) forecastChart.destroy();
+  forecastChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        borderColor: '#00FF88',
+        backgroundColor: 'rgba(0,255,136,0.08)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: '#00FF88',
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#555', font: { family: 'Inter', size: 11 } }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#555', font: { family: 'Inter', size: 11 }, callback: v => fmtShort(v) }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1A1A1A',
+          titleColor: '#fff',
+          bodyColor: '#00FF88',
+          borderColor: '#2A2A2A',
+          borderWidth: 1,
+          cornerRadius: 10,
+          padding: 12,
+          callbacks: { label: ctx => fmt(ctx.raw) }
+        }
+      }
+    }
+  });
 }
-function finishDraw(){
-  drawn=true;
-  haptic('reveal');            // ПИК — сильный толчок в момент отрыва
-  flash.classList.add('go');
-  glyph.style.opacity='1';
-  // карта чуть довзлетает и переворачивается
-  flip.style.transition='transform .5s cubic-bezier(.2,.9,.25,1.05)';
-  flip.style.transform=`translateY(${-MAXPULL-20}px)`;
-  const {deck,card,idx}=pickCard();
-  document.getElementById('f-theme').textContent=deck.name;
-  document.getElementById('f-level').textContent=LEVELS[card.level];
-  document.getElementById('f-task').innerHTML=card.t;
-  document.getElementById('f-est').textContent=card.est;
-  document.getElementById('f-num').textContent=String(idx).padStart(2,'0');
-  document.querySelector('.front').style.setProperty('--face-accent',deck.accent);
-  document.querySelector('.front').style.setProperty('--face-glow',deck.accent+'55');
-  setTimeout(()=>{
-    flip.style.transform='translateY(0)';   // возвращается по центру уже лицом
-    flip.classList.add('revealed');
-  },160);
-  setTimeout(()=>{
-    prompt.classList.add('hidden');
-    accept.classList.remove('hidden');
-  },640);
+
+function updateSummary(assets, debts, totalAssets, totalDebts, netWorth) {
+  const body = document.getElementById('summary-body');
+  let html = '';
+
+  if (assets.length === 0 && debts.length === 0) {
+    html = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:24px">Нет данных</td></tr>';
+    body.innerHTML = html;
+    return;
+  }
+
+  assets.forEach(a => {
+    const color = CAT_COLORS[a.cat] || '#888';
+    html += '<tr><td><span class="cat-dot" style="background:'+color+'"></span>'+esc(a.name)+'</td><td class="text-muted">'+esc(a.cat)+'</td><td class="text-right text-green">+'+fmt(a.amount)+'</td></tr>';
+  });
+
+  if (assets.length > 0 && debts.length > 0) {
+    html += '<tr><td colspan="3" style="border-bottom:1px solid var(--card-border)"></td></tr>';
+  }
+
+  debts.forEach(d => {
+    html += '<tr><td><span class="cat-dot" style="background:var(--red)"></span>'+esc(d.name)+'</td><td class="text-muted">'+(d.rate > 0 ? d.rate+'% годовых' : 'Без процентов')+'</td><td class="text-right text-red">−'+fmt(d.amount)+'</td></tr>';
+  });
+
+  const nwClass = netWorth >= 0 ? 'text-green' : 'text-red';
+  html += '<tr class="total-row"><td>Чистый капитал</td><td></td><td class="text-right '+nwClass+'">'+(netWorth >= 0 ? '+' : '')+fmt(netWorth)+'</td></tr>';
+
+  body.innerHTML = html;
 }
 
-/* pointer покрывает и палец, и мышь */
-back.addEventListener('pointerdown',startDrag);
-window.addEventListener('pointermove',moveDrag);
-window.addEventListener('pointerup',endDrag);
-back.addEventListener('pointercancel',endDrag);
-back.addEventListener('contextmenu',e=>e.preventDefault());
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
 
-/* принять → замок «до завтра» (искусственный дефицит) */
-accept.addEventListener('click',()=>{
-  haptic('medium');
-  accept.classList.add('hidden');
-  locked.classList.remove('hidden');
-  reset.classList.remove('hidden');   // только для демо
-});
-
-/* сброс (демо) */
-reset.addEventListener('click',()=>{
-  haptic('light');
-  drawn=false; dy=0;
-  flip.classList.remove('revealed');
-  flip.style.transition='transform .4s ease';
-  flip.style.transform='';
-  flash.classList.remove('go');
-  glyph.style.opacity='1';
-  locked.classList.add('hidden');
-  reset.classList.add('hidden');
-  setTimeout(()=>{
-    prompt.classList.remove('hidden');
-    prompt.querySelector('.big').textContent='Твоя карта ждёт';
-    prompt.querySelector('.sub').textContent='Потяни рубашку вверх, чтобы вытянуть карту';
-  },400);
-});
-
-/* дата в шапке */
-const days=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
-const now=new Date();
-document.getElementById('dateline').textContent=days[now.getDay()]+' · '+(now.getHours()<12?'утро':now.getHours()<18?'день':'вечер');
-
-if(TG){ TG.ready(); TG.expand(); }
+/* ── Init presets ── */
+DIST_PRESETS.forEach(p => addDist(p.name, p.pct));
+update();
 </script>
 </body>
 </html>
