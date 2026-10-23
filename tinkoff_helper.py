@@ -21,10 +21,9 @@ def get_client():
         print("ERROR: TINKOFF_TOKEN not set. Export it first:")
         print('  export TINKOFF_TOKEN="your_token_here"')
         sys.exit(1)
-    os.environ["SSL_CERT_FILE"] = CA_BUNDLE
-    os.environ["REQUESTS_CA_BUNDLE"] = CA_BUNDLE
     client = tinvest.SyncClient(TOKEN)
-    client._session.verify = CA_BUNDLE
+    if os.path.exists(CA_BUNDLE):
+        client._session.verify = CA_BUNDLE
     return client
 
 
