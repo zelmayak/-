@@ -1,33 +1,70 @@
 #!/usr/bin/env python3 -I
-"""Tinkoff Invest API helper — portfolio analysis, candles, search."""
+"""T-Invest API v2 helper — portfolio, candles, search. Uses REST directly."""
 
 import os
 import sys
 import json
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 
-import tinvest
+import requests
 import pandas as pd
 
 TOKEN = os.environ.get("TINKOFF_TOKEN", "")
+BASE = "https://invest-public-api.tbank.ru/rest"
 
 
-def get_client():
+def api(service, method, body=None):
+    """Call T-Invest API v2 REST endpoint."""
     if not TOKEN:
         print("ERROR: TINKOFF_TOKEN not set. Export it first:")
-        print('  export TINKOFF_TOKEN="your_token_here"')
+        print('  set TINKOFF_TOKEN=your_token   (Windows)')
+        print('  export TINKOFF_TOKEN=your_token (Mac/Linux)')
         sys.exit(1)
-    return tinvest.SyncClient(TOKEN)
+    url = f"{BASE}/tinkoff.public.invest.api.contract.v1.{service}/{method}"
+    resp = requests.post(url, headers={
+        "Authorization": f"Bearer {TOKEN}",
+        "Content-Type": "application/json",
+    }, json=body or {})
+    if resp.status_code != 200:
+        print(f"API error {resp.status_code}: {resp.text[:500]}")
+        sys.exit(1)
+    return resp.json()
+
+
+def money_value(mv):
+    """Convert MoneyValue/Quotation {units, nano} to float."""
+    if not mv:
+        return 0.0
+    units = int(mv.get("units", 0))
+    nano = int(mv.get("nano", 0))
+    return units + nano / 1_000_000_000
+
+
+# ── Accounts ──────────────────────────────────────────────────────
+
+def get_account_id():
+    """Get the first active account ID."""
+    data = api("UsersService", "GetAccounts")
+    accounts = data.get("accounts", [])
+    for a in accounts:
+        if a.get("status") == "ACCOUNT_STATUS_OPEN":
+            return a["id"]
+    if accounts:
+        return accounts[0]["id"]
+    print("No accounts found.")
+    sys.exit(1)
 
 
 # ── Portfolio ──────────────────────────────────────────────────────
 
 def portfolio():
     """Show all positions in the portfolio."""
-    client = get_client()
-    resp = client.get_portfolio()
-    positions = resp.payload.positions
+    account_id = get_account_id()
+    data = api("OperationsService", "GetPortfolio", {
+        "accountId": account_id,
+        "currency": "RUB",
+    })
+    positions = data.get("positions", [])
 
     if not positions:
         print("Portfolio is empty.")
@@ -35,26 +72,22 @@ def portfolio():
 
     rows = []
     for p in positions:
-        avg = float(p.average_position_price.value) if p.average_position_price else 0
-        expected = float(p.expected_yield.value) if p.expected_yield else 0
-        currency = p.average_position_price.currency.value if p.average_position_price else ""
-        lots = p.lots
-        name = p.name
-        ticker = p.ticker
-        itype = p.instrument_type.value
-        balance = float(p.balance)
-        current_price = avg + (expected / balance) if balance else avg
+        avg = money_value(p.get("averagePositionPrice"))
+        current = money_value(p.get("currentPrice"))
+        expected = money_value(p.get("expectedYield"))
+        qty = money_value(p.get("quantity"))
+        itype = p.get("instrumentType", "")
+        figi = p.get("figi", "")
+        currency = p.get("averagePositionPrice", {}).get("currency", "")
 
-        pnl_pct = (expected / (avg * balance) * 100) if (avg and balance) else 0
+        pnl_pct = (expected / (avg * qty) * 100) if (avg and qty) else 0
 
         rows.append({
-            "Ticker": ticker,
-            "Name": name[:25],
+            "FIGI": figi,
             "Type": itype,
-            "Lots": lots,
-            "Qty": balance,
+            "Qty": qty,
             "Avg Price": round(avg, 2),
-            "Current": round(current_price, 2),
+            "Current": round(current, 2),
             "P&L": round(expected, 2),
             "P&L %": round(pnl_pct, 2),
             "CCY": currency,
@@ -69,28 +102,16 @@ def portfolio():
         print(f"  {ccy}: {total:+.2f}")
 
 
-def portfolio_currencies():
-    """Show cash balances."""
-    client = get_client()
-    resp = client.get_portfolio_currencies()
-    rows = []
-    for c in resp.payload.currencies:
-        rows.append({
-            "Currency": c.currency.value,
-            "Balance": float(c.balance),
-            "Blocked": float(c.blocked) if c.blocked else 0,
-        })
-    df = pd.DataFrame(rows)
-    print(df.to_string(index=False))
-
-
 # ── Search ─────────────────────────────────────────────────────────
 
 def search(query):
     """Search for an instrument by ticker or name."""
-    client = get_client()
-    resp = client.get_market_search_by_ticker(query)
-    instruments = resp.payload.instruments
+    data = api("InstrumentsService", "FindInstrument", {
+        "query": query,
+        "instrumentKind": "INSTRUMENT_TYPE_UNSPECIFIED",
+        "apiTradeAvailableFlag": True,
+    })
+    instruments = data.get("instruments", [])
 
     if not instruments:
         print(f"Nothing found for '{query}'")
@@ -99,13 +120,11 @@ def search(query):
     rows = []
     for i in instruments:
         rows.append({
-            "FIGI": i.figi,
-            "Ticker": i.ticker,
-            "Name": i.name[:30],
-            "Type": i.type.value if i.type else "",
-            "Currency": i.currency.value if i.currency else "",
-            "Lot": i.lot,
-            "Min Qty": i.min_quantity if hasattr(i, "min_quantity") else "",
+            "FIGI": i.get("figi", ""),
+            "Ticker": i.get("ticker", ""),
+            "Name": i.get("name", "")[:30],
+            "Type": i.get("instrumentType", ""),
+            "ClassCode": i.get("classCode", ""),
         })
     df = pd.DataFrame(rows)
     print(df.to_string(index=False))
@@ -113,27 +132,31 @@ def search(query):
 
 # ── Candles & Technical Analysis ───────────────────────────────────
 
+INTERVAL_MAP = {
+    "1min": "CANDLE_INTERVAL_1_MIN",
+    "5min": "CANDLE_INTERVAL_5_MIN",
+    "15min": "CANDLE_INTERVAL_15_MIN",
+    "hour": "CANDLE_INTERVAL_HOUR",
+    "day": "CANDLE_INTERVAL_DAY",
+    "week": "CANDLE_INTERVAL_WEEK",
+    "month": "CANDLE_INTERVAL_MONTH",
+}
+
+
 def candles(figi, days=30, interval="day"):
     """Fetch candles and compute basic TA indicators."""
-    client = get_client()
-
-    interval_map = {
-        "1min": tinvest.CandleResolution.min1,
-        "5min": tinvest.CandleResolution.min5,
-        "15min": tinvest.CandleResolution.min15,
-        "30min": tinvest.CandleResolution.min30,
-        "hour": tinvest.CandleResolution.hour,
-        "day": tinvest.CandleResolution.day,
-        "week": tinvest.CandleResolution.week,
-        "month": tinvest.CandleResolution.month,
-    }
-
-    res = interval_map.get(interval, tinvest.CandleResolution.day)
     now = datetime.now(timezone.utc)
     from_ = now - timedelta(days=days)
 
-    resp = client.get_market_candles(figi, from_, now, res)
-    candle_list = resp.payload.candles
+    candle_interval = INTERVAL_MAP.get(interval, "CANDLE_INTERVAL_DAY")
+
+    data = api("MarketDataService", "GetCandles", {
+        "figi": figi,
+        "from": from_.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "to": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "interval": candle_interval,
+    })
+    candle_list = data.get("candles", [])
 
     if not candle_list:
         print("No candles returned.")
@@ -142,12 +165,12 @@ def candles(figi, days=30, interval="day"):
     rows = []
     for c in candle_list:
         rows.append({
-            "time": c.time.strftime("%Y-%m-%d %H:%M"),
-            "open": float(c.o),
-            "high": float(c.h),
-            "low": float(c.l),
-            "close": float(c.c),
-            "volume": c.v,
+            "time": c.get("time", "")[:16],
+            "open": money_value(c.get("open")),
+            "high": money_value(c.get("high")),
+            "low": money_value(c.get("low")),
+            "close": money_value(c.get("close")),
+            "volume": c.get("volume", 0),
         })
 
     df = pd.DataFrame(rows)
@@ -179,56 +202,67 @@ def candles(figi, days=30, interval="day"):
     print(f"Signal:      {last['Signal']}")
 
     if last["RSI_14"] and last["RSI_14"] > 70:
-        print("⚠ RSI > 70 — overbought zone")
+        print("!! RSI > 70 -- overbought zone")
     elif last["RSI_14"] and last["RSI_14"] < 30:
-        print("⚠ RSI < 30 — oversold zone")
+        print("!! RSI < 30 -- oversold zone")
 
     if last["MACD"] > last["Signal"]:
-        print("↑ MACD above signal — bullish momentum")
+        print(">> MACD above signal -- bullish momentum")
     else:
-        print("↓ MACD below signal — bearish momentum")
+        print("<< MACD below signal -- bearish momentum")
 
     if last["close"] > last["SMA_20"]:
-        print("↑ Price above SMA(20) — uptrend")
+        print(">> Price above SMA(20) -- uptrend")
     else:
-        print("↓ Price below SMA(20) — downtrend")
+        print("<< Price below SMA(20) -- downtrend")
 
 
 # ── Orderbook ──────────────────────────────────────────────────────
 
 def orderbook(figi, depth=10):
     """Show the order book for an instrument."""
-    client = get_client()
-    resp = client.get_market_orderbook(figi, depth)
-    ob = resp.payload
+    data = api("MarketDataService", "GetOrderBook", {
+        "figi": figi,
+        "depth": depth,
+    })
 
     print(f"FIGI: {figi}")
-    print(f"Last price: {ob.last_price}")
-    print(f"Close price: {ob.close_price}")
-    print(f"Trade status: {ob.trade_status.value}")
+    print(f"Last price: {money_value(data.get('lastPrice'))}")
+    print(f"Close price: {money_value(data.get('closePrice'))}")
     print()
 
+    asks = data.get("asks", [])
+    bids = data.get("bids", [])
+
     print("--- ASKS (sell) ---")
-    for a in reversed(ob.asks[:depth]):
-        print(f"  {float(a.price):>12.2f}  x {a.quantity}")
+    for a in reversed(asks[:depth]):
+        print(f"  {money_value(a.get('price')):>12.2f}  x {a.get('quantity', 0)}")
 
     print("--- --- ---")
 
     print("--- BIDS (buy) ---")
-    for b in ob.bids[:depth]:
-        print(f"  {float(b.price):>12.2f}  x {b.quantity}")
+    for b in bids[:depth]:
+        print(f"  {money_value(b.get('price')):>12.2f}  x {b.get('quantity', 0)}")
 
 
 # ── Operations ─────────────────────────────────────────────────────
 
 def operations(figi=None, days=30):
     """Show recent operations (trades)."""
-    client = get_client()
+    account_id = get_account_id()
     now = datetime.now(timezone.utc)
     from_ = now - timedelta(days=days)
 
-    resp = client.get_operations(from_, now, figi)
-    ops = resp.payload.operations
+    body = {
+        "accountId": account_id,
+        "from": from_.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "to": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    if figi:
+        body["figi"] = figi
+
+    data = api("OperationsService", "GetOperations", body)
+    ops = data.get("operations", [])
 
     if not ops:
         print("No operations found.")
@@ -237,14 +271,14 @@ def operations(figi=None, days=30):
     rows = []
     for op in ops:
         rows.append({
-            "Date": op.date.strftime("%Y-%m-%d %H:%M") if op.date else "",
-            "Type": op.operation_type.value if op.operation_type else "",
-            "Ticker": op.figi or "",
-            "Qty": op.quantity or "",
-            "Price": float(op.price) if op.price else "",
-            "Total": float(op.payment) if op.payment else "",
-            "CCY": op.currency.value if op.currency else "",
-            "Status": op.status.value if op.status else "",
+            "Date": op.get("date", "")[:16],
+            "Type": op.get("operationType", ""),
+            "FIGI": op.get("figi", ""),
+            "Qty": op.get("quantity", ""),
+            "Price": money_value(op.get("price")),
+            "Total": money_value(op.get("payment")),
+            "CCY": op.get("currency", ""),
+            "State": op.get("state", ""),
         })
 
     df = pd.DataFrame(rows)
@@ -257,12 +291,11 @@ USAGE = """
 Usage: python tinkoff_helper.py <command> [args]
 
 Commands:
-  portfolio              — show all positions
-  cash                   — show cash balances
-  search <ticker>        — search instrument by ticker
-  candles <figi> [days] [interval] — candles + TA indicators
-  orderbook <figi> [depth]        — order book
-  operations [figi] [days]        — recent trades/operations
+  portfolio              -- show all positions
+  search <query>         -- search instrument by ticker/name
+  candles <figi> [days] [interval] -- candles + TA (intervals: 1min,5min,15min,hour,day,week,month)
+  orderbook <figi> [depth]        -- order book
+  operations [figi] [days]        -- recent trades/operations
 """
 
 if __name__ == "__main__":
@@ -274,16 +307,23 @@ if __name__ == "__main__":
 
     if cmd == "portfolio":
         portfolio()
-    elif cmd == "cash":
-        portfolio_currencies()
     elif cmd == "search":
+        if len(sys.argv) < 3:
+            print("Usage: search <query>")
+            sys.exit(1)
         search(sys.argv[2])
     elif cmd == "candles":
+        if len(sys.argv) < 3:
+            print("Usage: candles <figi> [days] [interval]")
+            sys.exit(1)
         figi = sys.argv[2]
         days = int(sys.argv[3]) if len(sys.argv) > 3 else 30
         interval = sys.argv[4] if len(sys.argv) > 4 else "day"
         candles(figi, days, interval)
     elif cmd == "orderbook":
+        if len(sys.argv) < 3:
+            print("Usage: orderbook <figi> [depth]")
+            sys.exit(1)
         figi = sys.argv[2]
         depth = int(sys.argv[3]) if len(sys.argv) > 3 else 10
         orderbook(figi, depth)
