@@ -13,18 +13,12 @@ import pandas as pd
 TOKEN = os.environ.get("TINKOFF_TOKEN", "")
 
 
-CA_BUNDLE = os.environ.get("REQUESTS_CA_BUNDLE", "/root/.ccr/ca-bundle.crt")
-
-
 def get_client():
     if not TOKEN:
         print("ERROR: TINKOFF_TOKEN not set. Export it first:")
         print('  export TINKOFF_TOKEN="your_token_here"')
         sys.exit(1)
-    client = tinvest.SyncClient(TOKEN)
-    if os.path.exists(CA_BUNDLE):
-        client._session.verify = CA_BUNDLE
-    return client
+    return tinvest.SyncClient(TOKEN)
 
 
 # ── Portfolio ──────────────────────────────────────────────────────
